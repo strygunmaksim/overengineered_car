@@ -1,5 +1,6 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+<<<<<<< Updated upstream
 #include "driver/gpio.h"
 #include "driver/ledc.h"
 
@@ -85,6 +86,31 @@ void app_main(void) {
         vTaskDelay( pdMS_TO_TICKS(100) );
     }
 }
+=======
 
+#include "motor.h"
+>>>>>>> Stashed changes
 
+#define HIGH_LEVEL 1
+#define LOW_LEVEL  0
 
+<<<<<<< Updated upstream
+
+=======
+void app_main(void) {
+    /** Setup Timer for control motor */
+    vMSetupTimerForMotors();
+    /** Setup channels for control motor */
+    vMSetupChannel(GPIO_MOTOR_BL_FWD, NUM_CHANNEL_BL_FWD, DUTY(LEDC_TIMER_8_BIT));
+    vMSetupChannel(GPIO_MOTOR_BL_BACK, NUM_CHANNEL_BR_FWD, DUTY(LEDC_TIMER_8_BIT));
+    /** Setup start engine */
+    vMSetupGPIOMotors();
+
+    /** RUN TEST */
+    change_duty();
+
+    for (;;) {
+        vTaskDelay( pdMS_TO_TICKS( 100 ) );
+    }
+}
+>>>>>>> Stashed changes
