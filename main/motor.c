@@ -1,11 +1,27 @@
-#include "freertos/projdefs.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "esp_log.h"
-
 #include "motor.h"
 
 static const char *TAG = "motor";
+
+void vMSetupGPIOMotors() {
+    /** !TODO latter setup full 4WD */
+    unsigned long long bit_mask =
+        (1ULL << GPIO_ENA_BL) |
+        (1ULL << GPIO_ENB_BR) |
+        (1ULL << GPIO_MOTOR_BL_FWD) |
+        (1ULL << GPIO_MOTOR_BL_BACK) |
+        (1ULL << GPIO_MOTOR_BR_FWD ) |
+        (1ULL << GPIO_MOTOR_BR_BACK);
+
+    gpio_config_t const config = {
+        .mode = GPIO_MODE_OUTPUT,
+        .intr_type = GPIO_INTR_DISABLE,
+        .pin_bit_mask =  bit_mask,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .pull_up_en = GPIO_PULLUP_DISABLE,
+    };
+
+    gpio_config(&config);
+}
 
 void vMSetupTimerForMotors() {
     ledc_timer_config_t const config = {
@@ -18,34 +34,6 @@ void vMSetupTimerForMotors() {
     };
 
     ledc_timer_config(&config);
-}
-
-void vMSetupGPIOMotors() {
-    gpio_config_t const config = {
-        .mode = GPIO_MODE_OUTPUT,
-        .intr_type = GPIO_INTR_DISABLE,
-        .pin_bit_mask = (1ULL << GPIO_ENA_BL) | (1ULL << GPIO_ENB_BR) | (1ULL << GPIO_MOTOR_BL_FWD) | (1ULL << GPIO_MOTOR_BR_FWD),
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .pull_up_en = GPIO_PULLUP_DISABLE,
-    };
-
-    gpio_config(&config);
-}
-
-void vMStartMotor(gpio_num_t const gpio) {
-    gpio_set_level(gpio, 1);
-}
-
-void vMStopMotor(gpio_num_t const gpio) {
-    gpio_set_level(gpio, 0);
-}
-
-void vMovingForward(gpio_num_t const gpio) {
-    gpio_set_level(gpio, 1);
-}
-
-void vMMovingBack(gpio_num_t const gpio) {
-    gpio_set_level(gpio, 1);
 }
 
 void vMSetupChannel(gpio_num_t const gpio, ledc_channel_t const channel, uint32_t const duty) {
@@ -62,24 +50,62 @@ void vMSetupChannel(gpio_num_t const gpio, ledc_channel_t const channel, uint32_
     ledc_channel_config(&config);
 }
 
+void vMEngineStartEngine() {
+    /** !TODO add full setup */
+    gpio_set_level(GPIO_ENA_BL, HIGH_LEVEL);
+    gpio_set_level(GPIO_ENB_BR, HIGH_LEVEL);
+
+    /** INDICATOR (LED) */
+    gpio_set_level(GPIO_INDICATOR_OPERATION_INDICATOR, HIGH_LEVEL);
+}
+
+void VMEngineStopEngine() {
+    /** !TODO add full setup */
+    gpio_set_level(GPIO_ENA_BL, LOW_LEVEL);
+    gpio_set_level(GPIO_ENB_BR, LOW_LEVEL);
+
+    /** INDICATOR (LED) */
+    gpio_set_level(GPIO_INDICATOR_OPERATION_INDICATOR, LOW_LEVEL);
+}
+
 /** TEST */
+void vMStartMotor(gpio_num_t const gpio) {
+    gpio_set_level(gpio, HIGH_LEVEL);
+}
+
+void vMStopMotor(gpio_num_t const gpio) {
+    gpio_set_level(gpio, LOW_LEVEL);
+}
+
+void vMovingForward(gpio_num_t const gpio) {
+    gpio_set_level(gpio, HIGH_LEVEL);
+}
+
+void vMMovingBack(gpio_num_t const gpio) {
+    gpio_set_level(gpio, HIGH_LEVEL);
+}
+
 void change_duty() {
     vMStartMotor(GPIO_MOTOR_BL_FWD);
     vMStartMotor(GPIO_MOTOR_BR_FWD);
-    vMovingForward(GPIO_MOTOR_BL_FWD);
-    vMovingForward(GPIO_MOTOR_BR_FWD);
+    // vMovingForward(GPIO_MOTOR_BL_FWD);
+    // vMovingForward(GPIO_MOTOR_BR_FWD);
 
-    for (int i = 0; i < DUTY(LEDC_TIMER_8_BIT); i += 20) {
-        ledc_set_duty(LEDC_LOW_SPEED_MODE, NUM_CHANNEL_BL_FWD, i);
-        ledc_set_duty(LEDC_LOW_SPEED_MODE, NUM_CHANNEL_BR_FWD, i);
+    // for (int i = 0; i < DUTY(LEDC_TIMER_8_BIT); i += 20) {
+    //     ledc_set_duty(LEDC_LOW_SPEED_MODE, NUM_CHANNEL_BL_FWD, i);
+    //     ledc_set_duty(LEDC_LOW_SPEED_MODE, NUM_CHANNEL_BR_FWD, i);
+    //
+    //     ledc_update_duty(LEDC_LOW_SPEED_MODE, NUM_CHANNEL_BL_FWD);
+    //     ledc_update_duty(LEDC_LOW_SPEED_MODE, NUM_CHANNEL_BR_FWD);
+    //
+    //     ESP_LOGI(TAG, "%d", i);
+    //
+    //     vTaskDelay( pdMS_TO_TICKS( 5000 ) );
+    // }
 
-        ledc_update_duty(LEDC_LOW_SPEED_MODE, NUM_CHANNEL_BL_FWD);
-        ledc_update_duty(LEDC_LOW_SPEED_MODE, NUM_CHANNEL_BR_FWD);
+    // vMStopMotor(GPIO_MOTOR_BL_FWD);
 
-        ESP_LOGI(TAG, "%d", i);
-
-        vTaskDelay( pdMS_TO_TICKS( 5000 ) );
+    for ( ;; ) {
+        vTaskDelay( pdMS_TO_TICKS( 10 ) );
     }
-
-    vMStopMotor(GPIO_MOTOR_BL_FWD);
 }

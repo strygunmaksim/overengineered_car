@@ -1,9 +1,13 @@
 #ifndef MOTOR_H_
 #define MOTOR_H_
 
-
-#include "driver/gpio.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/projdefs.h"
+#include "freertos/task.h"
 #include "driver/ledc.h"
+#include "driver/gpio.h"
+#include "esp_log.h"
+
 
 #define GPIO_MOTOR_BL_FWD                       GPIO_NUM_32
 #define GPIO_MOTOR_BL_BACK                      GPIO_NUM_33
@@ -33,13 +37,29 @@
 
 #define DUTY(DUTY_RESOLUTION)                   ((1 << DUTY_RESOLUTION) - 1)
 
-void vMSetupTimerForMotors();
+#define FLAG_ENGINE_STAR                        (1 << 0)
+#define FLAG_ENGINE_BLOCK                       (1 << 1)
+
+#define HIGH_LEVEL                              1
+#define LOW_LEVEL                               0
+
+#define GPIO_INDICATOR_OPERATION_INDICATOR      GPIO_NUM_4
+#define GPIO_BUTTON_ENGINE_CONTROL_START_STOP   GPIO_NUM_5
+
+typedef struct {
+    unsigned int status_engine: 1;
+} engine_flag;
+
 void vMSetupGPIOMotors();
+void vMSetupTimerForMotors();
 
 void vMStartMotor(gpio_num_t const gpio);
 void vMStopMotor(gpio_num_t const gpio);
 void vMMovingForward(gpio_num_t const gpio);
 void vMMovingBack(gpio_num_t const gpio);
+
+void vMEngineStartEngine();
+void VMEngineStopEngine();
 
 void vMSetupChannel(gpio_num_t const gpio, ledc_channel_t const channel, uint32_t const duty);
 
