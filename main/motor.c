@@ -1,111 +1,41 @@
 #include "motor.h"
 
-static const char *TAG = "motor";
-
-void vMSetupGPIOMotors() {
-    /** !TODO latter setup full 4WD */
-    unsigned long long bit_mask =
-        (1ULL << GPIO_ENA_BL) |
-        (1ULL << GPIO_ENB_BR) |
-        (1ULL << GPIO_MOTOR_BL_FWD) |
-        (1ULL << GPIO_MOTOR_BL_BACK) |
-        (1ULL << GPIO_MOTOR_BR_FWD ) |
-        (1ULL << GPIO_MOTOR_BR_BACK);
-
+esp_err_t setup_motor_direction_pins() {
     gpio_config_t const config = {
         .mode = GPIO_MODE_OUTPUT,
-        .intr_type = GPIO_INTR_DISABLE,
-        .pin_bit_mask =  bit_mask,
+        .pin_bit_mask = (1ULL << CONFIG_GPIO_BACK_LEFT_MOV_FWD) |(1ULL << CONFIG_GPIO_BACK_LEFT_MOV_BACK) | (1ULL << CONFIG_GPIO_BACK_RIGHT_MOV_FWD) |(1ULL << CONFIG_GPIO_BACK_RIGHT_MOV_BACK),
+        .intr_type = GPIO_INTR_ANYEDGE,
         .pull_down_en = GPIO_PULLDOWN_DISABLE,
         .pull_up_en = GPIO_PULLUP_DISABLE,
     };
 
-    gpio_config(&config);
+    return gpio_config(&config);
 }
 
-void vMSetupTimerForMotors() {
+esp_err_t setup_motor_ledc_timer( ledc_timer_t const timer_num, ledc_timer_bit_t const timer_bit ) {
     ledc_timer_config_t const config = {
+        .timer_num = timer_num,
         .speed_mode = LEDC_LOW_SPEED_MODE,
-        .duty_resolution = LEDC_TIMER_8_BIT,
-        .timer_num = LEDC_TIMER_0,
-        .freq_hz = MOTOR_DC_TT_HZ,
         .clk_cfg = LEDC_AUTO_CLK,
-        .deconfigure = false
+        .deconfigure = false,
+        .duty_resolution = timer_bit,
+        .freq_hz = 5000,
     };
 
-    ledc_timer_config(&config);
+    return ledc_timer_config(&config);
 }
 
-void vMSetupChannel(gpio_num_t const gpio, ledc_channel_t const channel, uint32_t const duty) {
+esp_err_t setup_motor_ledc_channel( gpio_num_t const gpio_num, ledc_channel_t const channel, ledc_timer_t const timer ) {
     ledc_channel_config_t const config = {
-        .gpio_num = gpio,
-        .channel = channel,
         .speed_mode = LEDC_LOW_SPEED_MODE,
         .intr_type = LEDC_INTR_DISABLE,
-        .timer_sel = LEDC_TIMER_0,
-        .duty = duty,
-        .hpoint = 0
+        .gpio_num = gpio_num,
+        .channel = channel,
+        .timer_sel = timer,
+        .duty = 0,
+        .hpoint = 0,
+        .flags = { .output_invert = MOTOR_INVERT_DEF_CHANNEL },
     };
 
-    ledc_channel_config(&config);
-}
-
-void vMEngineStartEngine() {
-    /** !TODO add full setup */
-    gpio_set_level(GPIO_ENA_BL, HIGH_LEVEL);
-    gpio_set_level(GPIO_ENB_BR, HIGH_LEVEL);
-
-    /** INDICATOR (LED) */
-    gpio_set_level(GPIO_INDICATOR_OPERATION_INDICATOR, HIGH_LEVEL);
-}
-
-void VMEngineStopEngine() {
-    /** !TODO add full setup */
-    gpio_set_level(GPIO_ENA_BL, LOW_LEVEL);
-    gpio_set_level(GPIO_ENB_BR, LOW_LEVEL);
-
-    /** INDICATOR (LED) */
-    gpio_set_level(GPIO_INDICATOR_OPERATION_INDICATOR, LOW_LEVEL);
-}
-
-/** TEST */
-void vMStartMotor(gpio_num_t const gpio) {
-    gpio_set_level(gpio, HIGH_LEVEL);
-}
-
-void vMStopMotor(gpio_num_t const gpio) {
-    gpio_set_level(gpio, LOW_LEVEL);
-}
-
-void vMovingForward(gpio_num_t const gpio) {
-    gpio_set_level(gpio, HIGH_LEVEL);
-}
-
-void vMMovingBack(gpio_num_t const gpio) {
-    gpio_set_level(gpio, HIGH_LEVEL);
-}
-
-void change_duty() {
-    vMStartMotor(GPIO_MOTOR_BL_FWD);
-    vMStartMotor(GPIO_MOTOR_BR_FWD);
-    // vMovingForward(GPIO_MOTOR_BL_FWD);
-    // vMovingForward(GPIO_MOTOR_BR_FWD);
-
-    // for (int i = 0; i < DUTY(LEDC_TIMER_8_BIT); i += 20) {
-    //     ledc_set_duty(LEDC_LOW_SPEED_MODE, NUM_CHANNEL_BL_FWD, i);
-    //     ledc_set_duty(LEDC_LOW_SPEED_MODE, NUM_CHANNEL_BR_FWD, i);
-    //
-    //     ledc_update_duty(LEDC_LOW_SPEED_MODE, NUM_CHANNEL_BL_FWD);
-    //     ledc_update_duty(LEDC_LOW_SPEED_MODE, NUM_CHANNEL_BR_FWD);
-    //
-    //     ESP_LOGI(TAG, "%d", i);
-    //
-    //     vTaskDelay( pdMS_TO_TICKS( 5000 ) );
-    // }
-
-    // vMStopMotor(GPIO_MOTOR_BL_FWD);
-
-    for ( ;; ) {
-        vTaskDelay( pdMS_TO_TICKS( 10 ) );
-    }
+    return ledc_channel_config(&config);
 }
